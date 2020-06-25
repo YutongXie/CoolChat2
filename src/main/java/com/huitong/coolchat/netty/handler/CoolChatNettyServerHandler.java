@@ -1,6 +1,8 @@
 package com.huitong.coolchat.netty.handler;
 
 import com.huitong.coolchat.netty.protocol.CoolChatNettyMessage;
+import com.huitong.coolchat.redis.GoodsService;
+import com.huitong.coolchat.redis.RushPurchase;
 import com.huitong.coolchat.service.ChatHistoryService;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
@@ -25,6 +27,8 @@ import java.util.Date;
 public class CoolChatNettyServerHandler extends SimpleChannelInboundHandler<CoolChatNettyMessage> {
     @Autowired
     private ChatHistoryService chatHistoryService;
+    @Autowired
+    private RushPurchase rushPurchase;
     private static final ChannelGroup group = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, CoolChatNettyMessage msg) throws Exception {
@@ -49,6 +53,10 @@ public class CoolChatNettyServerHandler extends SimpleChannelInboundHandler<Cool
 
         if("extract".equalsIgnoreCase(content)) {
             chatHistoryService.extractAllMessage();
+        }
+
+        if("purchase".equalsIgnoreCase(content)) {
+            rushPurchase.purchase();
         }
     }
 
