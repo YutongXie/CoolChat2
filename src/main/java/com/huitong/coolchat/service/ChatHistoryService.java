@@ -21,7 +21,7 @@ public class ChatHistoryService {
     private RedisTemplate redisTemplate;
     private RedisClient redisClient = new RedisClient();
     public void recordMessage(String msg) {
-        redisTemplate.opsForList().leftPush("chatMsg-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHMM")), msg);
+        redisTemplate.opsForList().leftPush("chatMsg-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmm")), msg);
     }
 
     public void extractAllMessage() {
