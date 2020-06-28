@@ -1,4 +1,4 @@
-package com.huitong.coolchat.config;
+package com.huitong.coolchat.redis;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
@@ -33,7 +33,8 @@ public class RedisConfig {
 //        RedisSerializer redisSerializer = new FastJsonRedisSerializer(Object.class);
         Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);
         ObjectMapper om = new ObjectMapper();
-        //指定要序列化的域，field,get和set,以及修饰符范围，ANY是都有包括private和public
+        //specify the scope of serialization, field：get/set.
+        //ANY: means including private and public
         om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
         om.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
         jackson2JsonRedisSerializer.setObjectMapper(om);

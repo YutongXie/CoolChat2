@@ -1,7 +1,7 @@
 package com.huitong.coolchat.executor;
 
 import com.huitong.coolchat.netty.server.CoolChatNettyServer;
-import com.huitong.coolchat.redis.GoodsService;
+import com.huitong.coolchat.service.GoodsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;

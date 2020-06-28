@@ -1,12 +1,17 @@
 package com.huitong.coolchat.redis;
 
+import com.huitong.coolchat.entity.Client;
+import com.huitong.coolchat.entity.PurchaseRecord;
+import com.huitong.coolchat.service.GoodsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
 @Component
 @Slf4j
 public class RushPurchase {
@@ -15,16 +20,33 @@ public class RushPurchase {
     public void purchase() {
         int number = 10;
         for (int i = 0; i < 1000; i++) {
-            Runnable thread = new RushPurchaseThread(number);
+            Runnable thread = new RushPurchaseThread(number, "client-" + i);
             new Thread(thread).start();
         }
     }
 
+    public void extractPurchase() {
+       Set<String> keys = redisTemplate.keys("purchaseRecord-*");
+       keys.stream().forEach(key ->{
+           log.info("-------Purchase Records -----------");
+           log.info("key:" + key);
+           List<Client> clientList = redisTemplate.opsForList().range(key, 0, redisTemplate.opsForList().size(key));
+
+           clientList.forEach(client -> {
+               log.info("Purchase recrod - client:{}, amount:{}", client.getName(), client.getPurchaseRecordList().get(0).getAmount());
+           });
+
+       });
+    }
+
     class RushPurchaseThread implements Runnable {
+        private Client client;
         private int number;
 
-        public RushPurchaseThread(int number) {
+        public RushPurchaseThread(int number, String clientName) {
             this.number = number;
+            client = new Client();
+            client.setName(clientName);
         }
 
         @Override
@@ -54,7 +76,16 @@ public class RushPurchase {
             Map params = new HashMap();
             params.put("id", 1);
             params.put("number", number);
-
+            PurchaseRecord purchaseRecord = new PurchaseRecord();
+            String id = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHMM"));
+            purchaseRecord.setId(System.currentTimeMillis() + "");
+            purchaseRecord.setAmount(Double.valueOf(number));
+            List<PurchaseRecord> list = new ArrayList<>();
+            list.add(purchaseRecord);
+            client.setPurchaseRecordList(list);
+            redisTemplate.opsForList().leftPush("purchaseRecord-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHMM")), client);
         }
+
+
     }
 }

@@ -1,7 +1,6 @@
 package com.huitong.coolchat.netty.handler;
 
 import com.huitong.coolchat.netty.protocol.CoolChatNettyMessage;
-import com.huitong.coolchat.redis.GoodsService;
 import com.huitong.coolchat.redis.RushPurchase;
 import com.huitong.coolchat.service.ChatHistoryService;
 import io.netty.channel.Channel;
@@ -16,10 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
 
 @Slf4j
 @Component
@@ -57,6 +54,10 @@ public class CoolChatNettyServerHandler extends SimpleChannelInboundHandler<Cool
 
         if("purchase".equalsIgnoreCase(content)) {
             rushPurchase.purchase();
+        }
+
+        if("extractPurchase".equalsIgnoreCase(content)) {
+            rushPurchase.extractPurchase();
         }
     }
 
