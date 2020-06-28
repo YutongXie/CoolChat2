@@ -1,8 +1,9 @@
 package com.huitong.coolchat.netty.handler;
 
 import com.huitong.coolchat.netty.protocol.CoolChatNettyMessage;
-import com.huitong.coolchat.redis.RushPurchase;
+import com.huitong.coolchat.service.RushPurchaseService;
 import com.huitong.coolchat.service.ChatHistoryService;
+import com.huitong.coolchat.service.GoodsService;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -12,6 +13,7 @@ import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -25,7 +27,10 @@ public class CoolChatNettyServerHandler extends SimpleChannelInboundHandler<Cool
     @Autowired
     private ChatHistoryService chatHistoryService;
     @Autowired
-    private RushPurchase rushPurchase;
+    private RushPurchaseService rushPurchase;
+    @Autowired
+    private GoodsService goodsService;
+
     private static final ChannelGroup group = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, CoolChatNettyMessage msg) throws Exception {
@@ -52,12 +57,33 @@ public class CoolChatNettyServerHandler extends SimpleChannelInboundHandler<Cool
             chatHistoryService.extractAllMessage();
         }
 
-        if("purchase".equalsIgnoreCase(content)) {
-            rushPurchase.purchase();
-        }
-
         if("extractPurchase".equalsIgnoreCase(content)) {
             rushPurchase.extractPurchase();
+        }
+
+        if(content.startsWith("rushpurchase")) {
+            int amountIndex = content.indexOf(" ");
+            String amountStr = StringUtils.trimToEmpty(content.substring(amountIndex));
+            if(StringUtils.isBlank(amountStr))
+                return;
+            int amount = Integer.valueOf(amountStr);
+            String key = System.currentTimeMillis() +"";
+            goodsService.setupGoods(key, amount);
+
+            group.forEach(channel ->{
+                for (int i = 10; i > 0; i--) {
+                    CoolChatNettyMessage newMsg = new CoolChatNettyMessage();
+                    newMsg.setContent(("[From System]-" + i).getBytes());
+                    newMsg.setLength(("[From System]-" + i).getBytes().length);
+                    channel.pipeline().writeAndFlush(newMsg);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        log.info("sleeping 1 sec failed");
+                    }
+                }
+            });
+            rushPurchase.purchase(key);
         }
     }
 

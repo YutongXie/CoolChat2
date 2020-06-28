@@ -15,4 +15,8 @@ public class GoodsService {
     public void initialGoods() {
         redisTemplate.opsForValue().set(GOOD_KEY + 1, 100);
     }
+
+    public void setupGoods(String key, int amount) {
+        redisTemplate.opsForValue().set(GOOD_KEY + key, amount);
+    }
 }

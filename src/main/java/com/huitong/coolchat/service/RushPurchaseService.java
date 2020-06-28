@@ -1,4 +1,4 @@
-package com.huitong.coolchat.redis;
+package com.huitong.coolchat.service;
 
 import com.huitong.coolchat.entity.Client;
 import com.huitong.coolchat.entity.PurchaseRecord;
@@ -14,13 +14,14 @@ import java.util.*;
 
 @Component
 @Slf4j
-public class RushPurchase {
+public class RushPurchaseService {
     @Autowired
     private RedisTemplate redisTemplate;
-    public void purchase() {
-        int number = 10;
+    public void purchase(String key) {
+//        int number = 10;
         for (int i = 0; i < 1000; i++) {
-            Runnable thread = new RushPurchaseThread(number, "client-" + i);
+            int number = new Random().nextInt(10);
+            Runnable thread = new RushPurchaseThread(number, "client-" + i, key);
             new Thread(thread).start();
         }
     }
@@ -42,16 +43,18 @@ public class RushPurchase {
     class RushPurchaseThread implements Runnable {
         private Client client;
         private int number;
+        private String key;
 
-        public RushPurchaseThread(int number, String clientName) {
+        public RushPurchaseThread(int number, String clientName, String key) {
             this.number = number;
             client = new Client();
             client.setName(clientName);
+            this.key = key;
         }
 
         @Override
         public void run() {
-            Integer cacheGoods = (Integer)redisTemplate.opsForValue().get(GoodsService.GOOD_KEY + 1);
+            Integer cacheGoods = (Integer)redisTemplate.opsForValue().get(GoodsService.GOOD_KEY + key);
             if(cacheGoods == 0) {
                 log.info("Rush Purchase is complete");
                 return;
@@ -59,17 +62,17 @@ public class RushPurchase {
             log.info("goods in redis cache is:{}", cacheGoods);
 
 
-            long stock = redisTemplate.opsForValue().decrement(GoodsService.GOOD_KEY + 1, number);
+            long stock = redisTemplate.opsForValue().decrement(GoodsService.GOOD_KEY + key, number);
             if(stock < 0) {
-                cacheGoods = (Integer)redisTemplate.opsForValue().get(GoodsService.GOOD_KEY + 1);
+                cacheGoods = (Integer)redisTemplate.opsForValue().get(GoodsService.GOOD_KEY + key);
                 if(cacheGoods != 0 && cacheGoods < number) {
-                    redisTemplate.opsForValue().increment(GoodsService.GOOD_KEY + 1, number);
+                    redisTemplate.opsForValue().increment(GoodsService.GOOD_KEY + key, number);
                     log.info("required number is more than backlog..");
                 } else if(cacheGoods == 0) {
-                    redisTemplate.opsForValue().set(GoodsService.GOOD_KEY + 1, 0);
+                    redisTemplate.opsForValue().set(GoodsService.GOOD_KEY + key, 0);
                 }
 
-                log.info("Redis cache has goods:{}", redisTemplate.opsForValue().get(GoodsService.GOOD_KEY + 1));
+                log.info("Redis cache has goods:{}", redisTemplate.opsForValue().get(GoodsService.GOOD_KEY + key));
                 log.info("failed to purchase the goods. no enough goods");
                 return;
             }
@@ -77,13 +80,13 @@ public class RushPurchase {
             params.put("id", 1);
             params.put("number", number);
             PurchaseRecord purchaseRecord = new PurchaseRecord();
-            String id = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHMM"));
+            String id = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmm"));
             purchaseRecord.setId(System.currentTimeMillis() + "");
             purchaseRecord.setAmount(Double.valueOf(number));
             List<PurchaseRecord> list = new ArrayList<>();
             list.add(purchaseRecord);
             client.setPurchaseRecordList(list);
-            redisTemplate.opsForList().leftPush("purchaseRecord-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHMM")), client);
+            redisTemplate.opsForList().leftPush("purchaseRecord-" + id, client);
         }
 
 
